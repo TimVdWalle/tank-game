@@ -1,0 +1,14 @@
+{
+  "name": "tank-duel-server",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node ./src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "yaml": "^2.5.0"
+  }
+}
