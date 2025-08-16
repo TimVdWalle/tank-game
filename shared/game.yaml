@@ -1,0 +1,113 @@
+game:
+  version: 0.1
+  title: "Tank Duel MVP"
+  description: "Top-down tank duel with fuel, HP, and basecamp respawn. MVP focuses on 1v1 with lives."
+
+net:
+  server_port: 3000
+  client_port: 4000
+
+server:
+  tick_rate_hz: 30
+  snapshot_rate_hz: 20
+  input_hz: 60
+
+client:
+  render:
+    max_fps: 60
+    pixels_per_unit: 18
+  camera:
+    mode: follow_player
+    clamp_to_map: true
+    smoothing: lerp
+    smoothing_alpha: 0.15
+
+defaults:
+  tank:
+    hp_max: 100
+    fuel_max: 100
+    radius_units: 0.9
+  regen:
+    basecamp_hp_per_second: 10
+    basecamp_fuel_per_second: 10
+  movement:
+    speed_units_per_s: 6.0
+    fuel_per_second: 1.0
+    path_fuel_multiplier: 0.5
+  paths:
+    enabled: true
+    width_units: 1.0
+    discount_scope: global
+    breadcrumb:
+      spacing_units: 0.5
+      shape: circle
+    decay:
+      enabled: false
+      seconds: 90
+    style: ribbon
+    color: "#606060"
+    alpha: 0.45
+    z_index: -1
+  collision:
+    tank_vs_walls: hard_stop
+    tank_vs_tank: pass_through
+  basecamp:
+    placement: random_nonoverlapping
+    min_distance_between_camps: 20
+    min_distance_from_edges: 5
+    max_attempts: 50
+  elimination:
+    on_zero_hp: true
+    on_zero_fuel: true
+    on_disconnect: true
+  respawn:
+    delay_ms: 3000
+
+
+
+  weapons:
+    primary:
+      fire_rate_per_s: 2
+      damage: 25
+      projectile:
+        speed_units_per_s: 15
+        radius: 0.4
+        max_lifetime_ms: 2000
+        bounces: 0
+        wall_collision: destroy
+        explode_on_hit: false
+        collide_with_owner: false
+        muzzle_offset_units: 1.0
+
+modes:
+  - id: duel_lives
+    title: "Duel (1v1) — 5 Lives"
+    description: "Two players duel. Each death removes a life; respawn at your own basecamp. First to run out of lives loses."
+    players: 2
+    scoring:
+      lives: 5
+      win_condition: last_with_lives
+      match_end: on_player_out
+      tiebreakers:
+        simultaneous_final_death: second_death_wins
+    map:
+      id: standard_empty_arena
+    respawn:
+      enabled: true
+      resources:
+        hp_percent: 100
+        fuel_percent: 100
+
+maps:
+  standard_empty_arena:
+    coordinate_system: center_origin
+    size_units: { width: 60, height: 40 }
+    bounds:
+      x_min: -30
+      x_max: 30
+      y_min: -20
+      y_max: 20
+    walls:
+      boundary:
+        thickness_units: 1.0
+      interior: []
