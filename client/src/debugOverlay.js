@@ -1,68 +1,73 @@
-// client/src/debugOverlay.js
-// Discrete bottom-right debug panel for development.
-// Toggle: F1, Close: Esc. Exported API: { setMapInfo, open, close, toggle }
+// Full-height right sidebar debug panel for development.
+// Toggle: F1, Close: Esc. Exported API: { setMapInfo, setEnvText, open, close, toggle }
 
-export function createDebugOverlay({ getConnState, envBadges = [] } = {}) {
-    // ---- Styles (once) ----
+export function createDebugOverlay({ getConnInfo, envBadges = [] } = {}) {
     if (!document.getElementById("td-debug-style")) {
         const style = document.createElement("style");
         style.id = "td-debug-style";
         style.textContent = `
       .tdp-panel {
         position: fixed;
-        right: 12px;
-        bottom: 12px;
+        top: 0; right: 0; bottom: 0;
+        width: min(360px, 92vw);
         z-index: 9999;
-        width: min(320px, 92vw);
-        background: #121214;
+        background: #0f1013;
         color: #ededed;
-        border: 1px solid #2a2b31;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        padding: 10px 12px;
+        border-left: 1px solid #2a2b31;
+        box-shadow: 0 0 24px rgba(0,0,0,0.45);
         display: none;
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       }
       .tdp-panel.open { display: block; }
-
-      .tdp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-      .tdp-title { font-size: 13px; font-weight: 700; letter-spacing: .02em; opacity: .95; }
-      .tdp-close {
-        border: 1px solid #2a2b31; background: #1a1b1f; color: #bbb;
-        padding: 0 6px; border-radius: 6px; cursor: pointer; font-size: 12px; line-height: 20px;
-      }
-      .tdp-close:hover { color: #fff; }
-
-      .tdp-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-      .tdp-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; background: #1e1f24; border: 1px solid #2a2b31; }
-
-      .tdp-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; padding: 4px 0; }
-      .tdp-key { opacity: .7; font-size: 12px; }
-      .tdp-val { font-size: 12px; font-weight: 600; }
-
-      .tdp-hint { margin-top: 6px; font-size: 11px; opacity: .6; display:flex; justify-content: space-between; }
-      .tdp-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                 border:1px solid #2a2b31; background:#1a1b1f; border-radius:6px; padding:1px 6px; font-size:11px; }
+      .tdp-scroller { position: absolute; inset: 0; overflow: auto; padding: 12px 14px 18px 14px; }
+      .tdp-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+      .tdp-title { font-size: 13px; font-weight: 700; letter-spacing:.02em; opacity:.95; }
+      .tdp-close { border: 1px solid #2a2b31; background:#1a1b1f; color:#bbb; padding: 0 6px; border-radius: 6px; cursor:pointer; font-size:12px; line-height:22px; }
+      .tdp-close:hover { color:#fff; }
+      .tdp-section { border-top:1px solid #1b1c21; padding-top:10px; margin-top:10px; }
+      .tdp-badges { display:flex; gap:6px; flex-wrap:wrap; }
+      .tdp-badge { font-size:11px; padding:2px 6px; border-radius:999px; background:#1e1f24; border:1px solid #2a2b31; }
+      .tdp-row { display:grid; grid-template-columns: 120px 1fr; gap:10px; align-items:baseline; padding:4px 0; }
+      .tdp-key { opacity:.7; font-size:12px; }
+      .tdp-val { font-size:12px; font-weight:600; }
+      .tdp-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; border:1px solid #2a2b31; background:#1a1b1f; border-radius:6px; padding:1px 6px; font-size:11px; }
+      .tdp-hint { margin-top:8px; font-size:11px; opacity:.6; }
     `;
         document.head.appendChild(style);
     }
 
-    // ---- DOM ----
     const panel = document.createElement("div");
     panel.className = "tdp-panel";
     panel.innerHTML = `
-    <div class="tdp-header">
-      <div class="tdp-title">Debug</div>
-      <button class="tdp-close" type="button" aria-label="Close">×</button>
-    </div>
-    <div class="tdp-badges" id="tdp-badges"></div>
-    <div class="tdp-row"><div class="tdp-key">FPS (avg 30)</div><div class="tdp-val" id="tdp-fps">—</div></div>
-    <div class="tdp-row"><div class="tdp-key">Connection</div><div class="tdp-val" id="tdp-conn">—</div></div>
-    <div class="tdp-row"><div class="tdp-key">Environment</div><div class="tdp-val" id="tdp-env">—</div></div>
-    <div class="tdp-row"><div class="tdp-key">Map</div><div class="tdp-val" id="tdp-map">pending</div></div>
-    <div class="tdp-hint">
-      <span>Dev only</span>
-      <span><span class="tdp-kbd">F1</span> toggle • <span class="tdp-kbd">Esc</span> close</span>
+    <div class="tdp-scroller">
+      <div class="tdp-header">
+        <div class="tdp-title">Debug</div>
+        <button class="tdp-close" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="tdp-section">
+        <div class="tdp-badges" id="tdp-badges"></div>
+      </div>
+
+      <div class="tdp-section" id="tdp-conn-sec">
+        <div class="tdp-row"><div class="tdp-key">Status</div><div class="tdp-val" id="tdp-conn">—</div></div>
+        <div class="tdp-row"><div class="tdp-key">Socket ID</div><div class="tdp-val" id="tdp-sid">—</div></div>
+        <div class="tdp-row"><div class="tdp-key">Transport</div><div class="tdp-val" id="tdp-tr">—</div></div>
+      </div>
+
+      <div class="tdp-section">
+        <div class="tdp-row"><div class="tdp-key">FPS (avg 30)</div><div class="tdp-val" id="tdp-fps">—</div></div>
+      </div>
+
+      <div class="tdp-section">
+        <div class="tdp-row"><div class="tdp-key">Environment</div><div class="tdp-val" id="tdp-env">—</div></div>
+      </div>
+
+      <div class="tdp-section">
+        <div class="tdp-row"><div class="tdp-key">Map</div><div class="tdp-val" id="tdp-map">pending</div></div>
+      </div>
+
+      <div class="tdp-hint">Toggle with <span class="tdp-kbd">F1</span>, close with <span class="tdp-kbd">Esc</span>. Dev only.</div>
     </div>
   `;
     document.body.appendChild(panel);
@@ -79,6 +84,8 @@ export function createDebugOverlay({ getConnState, envBadges = [] } = {}) {
     // Elements
     const fpsEl = panel.querySelector("#tdp-fps");
     const connEl = panel.querySelector("#tdp-conn");
+    const sidEl = panel.querySelector("#tdp-sid");
+    const trEl = panel.querySelector("#tdp-tr");
     const envEl = panel.querySelector("#tdp-env");
     const mapEl = panel.querySelector("#tdp-map");
 
@@ -94,11 +101,18 @@ export function createDebugOverlay({ getConnState, envBadges = [] } = {}) {
         lastTs = ts;
         samples.push(dt);
         if (samples.length > maxSamples) samples.shift();
+
         if (panel.classList.contains("open")) {
-            const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
-            const fps = Math.max(0, Math.min(240, 1000 / (avg || 16.67)));
+            const avg = samples.reduce((a, b) => a + b, 0) / samples.length || 16.67;
+            const fps = Math.max(0, Math.min(240, 1000 / avg));
             fpsEl.textContent = fps.toFixed(1);
-            connEl.textContent = typeof getConnState === "function" ? getConnState() : "n/a";
+
+            if (typeof getConnInfo === "function") {
+                const info = getConnInfo() || {};
+                connEl.textContent = info.state ?? "n/a";
+                sidEl.textContent = info.id ?? "—";
+                trEl.textContent = info.transport ?? "n/a";
+            }
         }
         requestAnimationFrame(onFrame);
     }
@@ -113,12 +127,11 @@ export function createDebugOverlay({ getConnState, envBadges = [] } = {}) {
 
     // Keys
     const keyHandler = (e) => {
-        if (e.key === "F1" || e.key === "h") { e.preventDefault(); toggle(); }
+        if (e.key === "F1") { e.preventDefault(); toggle(); }
         else if (e.key === "Escape" && panel.classList.contains("open")) { e.preventDefault(); close(); }
     };
     window.addEventListener("keydown", keyHandler);
 
-    // Expose for console use in dev
     const api = { open, close, toggle, setMapInfo, setEnvText };
     window.__TD_DEBUG = api;
     return api;

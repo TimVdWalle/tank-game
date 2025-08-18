@@ -13,6 +13,70 @@ Map info (id, size) once known
 Clean, centered modal with semi-transparent backdrop; responsive on small screens.
 ```
 
+Next TODO — Room-based matchmaking with tank battle room names
+What we’ll do
+Config (YAML)
+server:
+rooms:
+capacity: 2
+naming:
+theme: tank_battle_sites
+suffix_on_conflict: roman   # I, II, III… if we cycle
+shuffle_seed: "daily"       # reshuffle list per day for variety
+Data
+Add shared/data/rooms/tank_battle_sites.txt (one name per line).
+Server
+Implement RoomManager (in-memory):
+findOnePlayerRoom(), createRoom(), addPlayer(socket, name), removePlayer(socket).
+Generate room name by taking the next unused name from the shuffled list; on reuse, append roman suffix.
+Scope match_state broadcasts to io.to(roomName).
+Update join flow to return room: { name } in welcome.
+Client
+Show Room: <name> under the title (and in the debug panel’s “Connection” section).
+Initial curated pool (real tank battle locations)
+Kursk
+Prokhorovka
+Khalkhin Gol
+Raseiniai
+Dubno
+Kharkiv
+El Alamein
+Gazala
+Tobruk
+Bir Hakeim
+Sidi Rezegh
+Kasserine
+El Guettar
+Arras
+Cambrai
+Villers-Bocage
+Caen
+Falaise
+Bourguébus Ridge
+Sinai
+Golan Heights
+Valley of Tears
+Lake Balaton
+El Alamein (Alam Halfa)
+Medjez-el-Bab
+El Guettar (Djebel)
+Orel
+Belgorod
+Ponyri
+Anzio (Tank actions)
+Sidi Bou Zid
+Basra (73 Easting nearby Kuwait theater)
+73 Easting
+Qasr as-Sallum
+El Agheila
+If any are too niche, we’ll trim later; we can easily expand this pool.
+
+
+next todo:
+make debug window modular
+create a json that maps the origin of the values with what to show on the debug window
+
+
 
 ## Step 2 — Join by name (no movement yet)
 Config (YAML): add spawn defaults used until basecamps/paths exist.
