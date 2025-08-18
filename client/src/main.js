@@ -1,27 +1,33 @@
 import { io } from "socket.io-client";
-import { createRenderer } from "./render/adapters/canvas2d_basic/index.js";
 
-const hud = document.getElementById("hud");
-const canvas = document.getElementById("game");
+const appEl = document.getElementById("app");
 
-let renderer = null;
-let lastSnapshot = { entities: [] };
-
-// Connect via Vite proxy -> server :3000
-const socket = io();
-
-socket.on("connect", () => { hud.textContent = `connected: ${socket.id}`; });
-socket.on("disconnect", () => { hud.textContent = "disconnected"; });
-
-socket.on("config", (cfg) => {
-    document.title = `${cfg.game.title} — v${cfg.game.version}`;
-    renderer = createRenderer(canvas, cfg);
-});
-
-socket.on("snapshot", (snap) => { lastSnapshot = snap; });
-
-function loop(ts) {
-    if (renderer && lastSnapshot) renderer.render(lastSnapshot);
-    requestAnimationFrame(loop);
+function render(title) {
+    appEl.innerHTML = `
+    <main style="min-height:100vh; display:grid; place-items:center; background:#0e0e10; color:#eaeaea;">
+      <div style="text-align:center;">
+        <h1 style="font-size: clamp(2rem, 6vw, 4rem); letter-spacing: .02em; margin: 0;">
+          ${title}
+        </h1>
+      </div>
+    </main>
+  `;
 }
-requestAnimationFrame(loop);
+
+async function loadAndRender() {
+    let title = "Tank Duel";
+    try {
+        const res = await fetch("/api/config", { cache: "no-store" });
+        const data = await res.json();
+        title = data?.game?.title ?? title;
+    } catch (e) {
+        console.warn("Failed to load /api/config:", e);
+    }
+    render(title);
+}
+
+async function boot() {
+    await loadAndRender();
+}
+
+boot();

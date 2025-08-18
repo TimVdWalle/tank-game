@@ -1,65 +1,51 @@
 import http from "http";
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-import { createIO } from "./net/io.js";
-import { loadConfig } from "./util/config.js";
-import { log } from "./util/logger.js";
+import { attachSocket } from "./net/io.js";
+import { getConfig } from "./util/config.js"; // keep your existing util
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const ROOT = path.resolve(__dirname, "../../");
-const CLIENT_DIST = path.resolve(ROOT, "../client/dist");
+const app = express();
 
-(async function main() {
-    const { cfg, clientConfig } = await loadConfig();
+// Minimal API (unchanged behavior)
+app.get("/api/config", (_req, res) => {
+    const cfg = getConfig();
+    res.json({
+        game: {
+            title: lets ,
+            version: cfg.game?.version,
+            description: cfg.game?.description
+        }
+    });
+});
 
-    const app = express();
-    // Serve built client in production: `cd client && npm run build`
-    app.use(express.static(CLIENT_DIST));
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-    const server = http.createServer(app);
-    const io = createIO(server);
+const httpServer = http.createServer(app);
+attachSocket(httpServer);
 
-    // Emit trimmed config on connect
-    io.on("connection", (socket) => {
-        socket.emit("config", clientConfig);
+// Port is read once at startup (that’s normal for hot-reload via restart)
+const PORT = Number(getConfig().net.server_port) || 3000;
+httpServer.listen(PORT, () => {
+    console.log(`[server] listening on http://localhost:${PORT}`);
+});
+
+// ---- graceful shutdown for fast hot-restarts ----
+function shutdown(signal) {
+    console.log(`[server] ${signal} received, closing...`);
+    httpServer.close((err) => {
+        if (err) {
+            console.error("[server] close error:", err);
+            process.exit(1);
+        }
+        console.log("[server] closed cleanly");
+        process.exit(0);
     });
 
-    // Dummy sim state
-    const SIM_HZ = cfg.server?.tick_rate_hz ?? 30;
-    const SNAPSHOT_HZ = cfg.server?.snapshot_rate_hz ?? 20;
+    // Safety: force-exit if something hangs
+    setTimeout(() => {
+        console.warn("[server] forced exit after timeout");
+        process.exit(0);
+    }, 1000).unref();
+}
 
-    const state = {
-        t: 0,
-        entities: [{ id: "dummy", x: 0, y: 0, r: 0.6 }]
-    };
-
-    // 30 Hz sim: move the dot in an ellipse
-    const simInterval = setInterval(() => {
-        state.t += 1 / SIM_HZ;
-        const { width: W, height: H } = clientConfig.map.size_units;
-        const rx = (W / 2) * 0.6;
-        const ry = (H / 2) * 0.5;
-        state.entities[0].x = Math.cos(state.t * 0.7) * rx * 0.8;
-        state.entities[0].y = Math.sin(state.t * 0.7) * ry * 0.8;
-    }, 1000 / SIM_HZ);
-
-    // 20 Hz snapshots
-    const snapInterval = setInterval(() => {
-        io.emit("snapshot", { now: Date.now(), entities: state.entities });
-    }, 1000 / SNAPSHOT_HZ);
-
-    // Start server on configured port
-    const PORT = cfg.net?.server_port ?? 3000;
-    server.listen(PORT, () => log(`HTTP + Socket.IO listening on :${PORT}`));
-
-    // graceful shutdown
-    const stop = () => {
-        clearInterval(simInterval);
-        clearInterval(snapInterval);
-        server.close(() => process.exit(0));
-    };
-    process.on("SIGINT", stop);
-    process.on("SIGTERM", stop);
-})();
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

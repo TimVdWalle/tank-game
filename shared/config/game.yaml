@@ -1,6 +1,6 @@
 game:
   version: 0.1
-  title: "Tank Duel MVP"
+  title: "The tank game v0.1"
   description: "Top-down tank duel with fuel, HP, and basecamp respawn. MVP focuses on 1v1 with lives."
 
 net:
@@ -27,13 +27,13 @@ defaults:
     hp_max: 100
     fuel_max: 100
     radius_units: 0.9
-  regen:
-    basecamp_hp_per_second: 10
-    basecamp_fuel_per_second: 10
-  movement:
-    speed_units_per_s: 6.0
-    fuel_per_second: 1.0
-    path_fuel_multiplier: 0.5
+    regen:
+      basecamp_hp_per_second: 10
+      basecamp_fuel_per_second: 10
+    movement:
+      speed_units_per_s: 6.0
+      fuel_per_second: 1.0
+      path_fuel_multiplier: 0.5
   paths:
     enabled: true
     width_units: 1.0
@@ -44,10 +44,11 @@ defaults:
     decay:
       enabled: false
       seconds: 90
-    style: ribbon
-    color: "#606060"
-    alpha: 0.45
-    z_index: -1
+    style:
+      ribbon:
+        color: "#606060"
+        alpha: 0.45
+        z_index: -1
   collision:
     tank_vs_walls: hard_stop
     tank_vs_tank: pass_through
@@ -62,9 +63,6 @@ defaults:
     on_disconnect: true
   respawn:
     delay_ms: 3000
-
-
-
   weapons:
     primary:
       fire_rate_per_s: 2
@@ -86,17 +84,17 @@ modes:
     players: 2
     scoring:
       lives: 5
-      win_condition: last_with_lives
-      match_end: on_player_out
-      tiebreakers:
-        simultaneous_final_death: second_death_wins
+    win_condition: last_with_lives
+    match_end: on_player_out
+    tiebreakers:
+      simultaneous_final_death: second_death_wins
     map:
       id: standard_empty_arena
     respawn:
       enabled: true
-      resources:
-        hp_percent: 100
-        fuel_percent: 100
+    resources:
+      hp_percent: 100
+      fuel_percent: 100
 
 maps:
   standard_empty_arena:
