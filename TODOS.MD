@@ -77,6 +77,40 @@ make debug window modular
 create a json that maps the origin of the values with what to show on the debug window
 
 
+Next TODO — Room-based matchmaking (1v1 rooms, name shown in UI)
+Goal
+Maintain an in-memory list of rooms on the server:
+If no rooms exist → joining player creates a room.
+If a room with exactly 1 player exists → new player joins that room.
+If no 1-player room is available → create a new room.
+The room name is sent to the client and shown in the UI.
+Config-first (YAML additions)
+server:
+rooms:
+capacity: 2
+name:
+prefix: "TD"
+length: 4           # e.g., TD-7F3C
+charset: "A0"       # A: A–Z, a–z; 0: digits; AA00 for more mix
+Server tasks
+Add a lightweight RoomManager:
+findRoomWithOnePlayer()
+createRoom() → generates a room name like TD-7F3C
+addPlayer(socket, name) → picks/creates room, joins socket.join(roomName), returns { roomName, player, map }
+removePlayer(socket) → removes; if room empty, delete.
+Scope events per room:
+Emit welcome only to the joining socket.
+Emit match_state to that room via io.to(roomName).emit(...).
+welcome payload now includes room: { name }.
+Client tasks
+On welcome, save room.name and render it in the UI (e.g., below the title).
+In the debug panel (dev), add a line “Room: TD-XXXX”.
+Acceptance
+First player creates a room and sees the room name.
+Second player joins the existing 1-player room and sees the same room name.
+If no 1-player room is available, a new room is created.
+match_state updates only affect players in the same room.
+
 
 ## Step 2 — Join by name (no movement yet)
 Config (YAML): add spawn defaults used until basecamps/paths exist.
