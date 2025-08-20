@@ -1,26 +1,8 @@
-import { getConfig } from "../util/config.js";
-
-export type Bounds = { x_min: number; x_max: number; y_min: number; y_max: number };
-export type MapCfg = { size_units: { width: number; height: number }; bounds: Bounds };
-export type SpawnCfg = { min_distance_from_edges?: number; max_attempts?: number };
-
-export type Player = { id: string; name: string; x: number; y: number };
-export type MatchState = "waiting" | "active";
-
-export interface Match {
-    state: MatchState;
-    players: Map<string, Player>;
-    mapId: string;
-    mapCfg: MapCfg;
-    spawnCfg: SpawnCfg;
-}
+import { resolveMatchBase } from "../util/config.js";
+import type { Bounds, MapCfg, SpawnCfg, Player, MatchState, Match } from "../types/game.js";
 
 export function createMatch(): Match {
-    const cfg = getConfig();
-    const mode = (cfg.modes || []).find((m: any) => m.id === "duel_lives") || cfg.modes?.[0];
-    const mapId: string = mode?.map?.id || "standard_empty_arena";
-    const mapCfg: MapCfg = cfg.maps?.[mapId];
-    const spawnCfg: SpawnCfg = cfg?.defaults?.spawn ?? { min_distance_from_edges: 3, max_attempts: 100 };
+    const { mapId, mapCfg, spawnCfg } = resolveMatchBase();
     return {
         state: "waiting",
         players: new Map<string, Player>(),
@@ -37,7 +19,11 @@ export function sanitizeName(raw: unknown): string | null {
     return s;
 }
 
-export function randomSpawn(bounds: Bounds, edge: number, attempts = 100): { x: number; y: number } {
+export function randomSpawn(
+    bounds: Bounds,
+    edge: number,
+    attempts = 100
+): { x: number; y: number } {
     const xMin = bounds.x_min + edge;
     const xMax = bounds.x_max - edge;
     const yMin = bounds.y_min + edge;

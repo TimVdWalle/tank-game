@@ -1,5 +1,7 @@
 import type { Server, Socket } from "socket.io";
-import { addPlayer, removePlayer, publicMatchState, welcomePayload, type Match } from "../../game/match.js";
+import type { Match } from "../../types/game.js";
+import { addPlayer, removePlayer, publicMatchState, welcomePayload } from "../../game/match.js";
+
 
 export function registerJoin(io: Server, match: Match) {
     return (socket: Socket) => {

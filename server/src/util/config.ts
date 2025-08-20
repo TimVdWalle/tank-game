@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import YAML from "yaml";
+import type { MapCfg, SpawnCfg } from "../types/game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,7 @@ export type Config = {
     modes?: Array<{ id: string; map?: { id: string } }>;
     maps?: Record<string, any>;
     defaults?: { spawn?: { min_distance_from_edges?: number; max_attempts?: number } };
+    game?: { title?: string; version?: string; description?: string };
     [k: string]: any;
 };
 
@@ -60,4 +62,27 @@ export function ratesFrom(cfg: Readonly<Config> = CONFIG_SNAPSHOT) {
 
 export function resolveConfigPath() {
     return CONFIG_PATH;
+}
+
+/** Resolve mode/map/spawn using config with sensible fallbacks. */
+export function resolveMatchBase(cfg: Readonly<Config> = CONFIG_SNAPSHOT): {
+    mapId: string;
+    mapCfg: MapCfg;
+    spawnCfg: SpawnCfg;
+} {
+    const modes = cfg.modes ?? [];
+    const mode = modes.find((m) => m.id === "duel_lives") ?? modes[0];
+    const mapId = mode?.map?.id ?? "standard_empty_arena";
+
+    // Map fallback mirrors the example YAML to keep dev deterministic.
+    const mapCfg: MapCfg =
+        (cfg.maps && (cfg.maps as any)[mapId]) || {
+            size_units: { width: 60, height: 40 },
+            bounds: { x_min: -30, x_max: 30, y_min: -20, y_max: 20 }
+        };
+
+    const spawnDefaults: SpawnCfg = { min_distance_from_edges: 3, max_attempts: 100 };
+    const spawnCfg: SpawnCfg = { ...spawnDefaults, ...(cfg.defaults?.spawn ?? {}) };
+
+    return { mapId, mapCfg, spawnCfg };
 }
