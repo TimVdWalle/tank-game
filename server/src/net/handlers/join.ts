@@ -1,18 +1,19 @@
-import { addPlayer, removePlayer, publicMatchState, welcomePayload } from "../../game/match.js";
+import type { Server, Socket } from "socket.io";
+import { addPlayer, removePlayer, publicMatchState, welcomePayload, type Match } from "../../game/match.js";
 
-export function registerJoin(io, match) {
-    return (socket) => {
-        socket.on("join", (payload = {}) => {
+export function registerJoin(io: Server, match: Match) {
+    return (socket: Socket) => {
+        socket.on("join", (payload: { name?: string } = {}) => {
             const { player, error } = addPlayer(match, socket.id, payload.name);
             if (error) {
                 socket.emit("event", { type: "error", message: error });
                 return;
             }
-            socket.emit("welcome", welcomePayload(match, player));
+            socket.emit("welcome", welcomePayload(match, player!));
             io.emit("match_state", publicMatchState(match));
         });
 
-        socket.on("disconnect", (reason) => {
+        socket.on("disconnect", () => {
             if (removePlayer(match, socket.id)) {
                 io.emit("match_state", publicMatchState(match));
             }
